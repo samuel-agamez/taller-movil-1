@@ -1,6 +1,8 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 function NuevoScreen(props) {
   const navigation = props.navigation;
@@ -8,18 +10,33 @@ function NuevoScreen(props) {
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [ciudad, setCiudad] = useState("");
+  const [guardando, setGuardando] = useState(false);
 
-  const guardarContacto = () => {
+  async function guardarContacto() {
     if (nombre === "" || telefono === "" || ciudad === "") {
       Alert.alert("Faltan datos", "Todos los campos son obligatorios");
       return;
     }
 
-    
-    console.log("Contacto a guardar:", { nombre, telefono, ciudad });
+    setGuardando(true);
 
-    navigation.navigate('Lista');
-  };
+    try {
+      const referenciaColeccion = collection(db, "contactos");
+
+      await addDoc(referenciaColeccion, {
+        nombre: nombre,
+        telefono: telefono,
+        ciudad: ciudad,
+      });
+
+      navigation.navigate('Lista');
+    } catch (error) {
+      Alert.alert("Error", "No se pudo guardar el contacto");
+      console.log(error);
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   return (
     <View style={styles.contenedor}>
@@ -48,8 +65,10 @@ function NuevoScreen(props) {
         placeholder="Ciudad"
       />
 
-      <TouchableOpacity style={styles.boton} onPress={guardarContacto}>
-        <Text style={styles.textoBoton}>Guardar</Text>
+      <TouchableOpacity style={styles.boton} onPress={guardarContacto} disabled={guardando}>
+        <Text style={styles.textoBoton}>
+          {guardando === true ? "Guardando..." : "Guardar"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
